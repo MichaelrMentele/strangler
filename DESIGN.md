@@ -4,13 +4,31 @@ Goals:
   - describing one way imports AKA disallowing exports of a module for example for a module that describes extensions of a framework
   - describing a modules public interface i.e. what is allowed to be exported
   - a grandfather file that whitelists specific imports that should be exceptions to a given import rule
+  - describing what is private and should not be exported
+  - combining private and public descriptions together
+- modes
+  - unittest
+  - command line
+    - output percent strangled based on interface definition vs. violations
 
 Demonstration:
 ```python
 from strangler import Boundary
 to_strangle = Boundary(module_root, allowed_exports=[sub_modules, ...])
-to_strangle.grandfather_violations() # w
-to_strangle.enforce() # raises an import error if there are any violations of allowed_exports
+# You can decide to grandfather the violations when you record them which means that you will
+# refer to that while and whitelist those violations when enforcing that interface
+# later, the filename is computed from the module being defined. By default these
+# are saved within the root module inside of a file named to_strangle. This way
+# viewers of the code can easily see there are certain lines and paths within
+# the module that should be worked out overtime.
+to_strangle.record_violations(grandfather=True)
+to_strangle.find_interface_violations()
+# raises an exception if any violations exist -- useful as a unittest
+# if the violations are within the grandfather file, it excludes them
+# if the violations are a subset of the grandfather file, the grandfather
+# file will automatically be updated and you will get a congratulatory
+# comment, if running from the command line
+to_strangle.enforce_interfaces()
 
 # You can also define module interfaces as a dict
 # Defining what is public will allow you to check that nothing that is NOT
@@ -50,8 +68,8 @@ interfaces = {
 
 # It is assumed by default you are defining a public interface, you can
 # define the interface inversely like so:
-interfaces = {
-  'rootA': {'private': True, 'submodules': [...]}
+interfaces_definition = {
+  'rootA': {'private': [...], 'public': [...]}
 }
 
 '''
