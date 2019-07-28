@@ -1,51 +1,41 @@
-Goals:
-- simply describe and enforce separation of concerns between modules
-- supports
-  - describing one way imports AKA disallowing exports of a module for example for a module that describes extensions of a framework
-  - describing a modules public interface i.e. what is allowed to be exported
-  - a grandfather file that whitelists specific imports that should be exceptions to a given import rule
-  - describing what is private and should not be exported
-  - combining private and public descriptions together
-- modes
-  - unittest
-  - command line
-    - output percent strangled based on interface definition vs. violations
+Strangler is a macro level tool to enable the 'strangling' of modules. Strangling is
+the slow killing of modules. The intent is to strangle away the coupling of modules
+and to create separation of concerns so you have the flexibility to manage them
+orthogonally.
 
-Demonstration:
+## Goals:
+- simply describe and enforce incremental separation of concerns between modules
+- allow for grandfathering of past invalid imports
+- provides a simple interface for tracking progress and defining module boundaries
+
+## Usecases
+### Use Case 1: Enforcing one way imports
+If a module defines an extension of some framework it is nice to be able to enforce that
+extension does not export itself or couple itself in the reverse direction to
+generic framework components. We can define this boundary as the entire module being
+private.
+
+### Use Case 2: Extracting services from a monolith
+When a service or package starts out monolithic submodules can become unnecessarily
+coupled due to cross imports creating unnecessary dependencies. Defining what is public
+and grandfathering in violations can 1) ratchet down on further violations and
+2) clarify the work remaining to decouple a module from a super module.
+
+### Use Case 3: Preventing Abuse by Enforcing Information hiding and Boundaries
+In general, it is useful to have APIs that pull down and hide information. By
+defining explicitly what is public to a module to let consumers know how that
+module is intended to be consumed preventing abuse and over amorous interactions
+between modules.
+
+## Use Demonstration: How to Strangle a Module
+### As a Unit Test
 ```python
-from strangler import Boundary
-to_strangle = Boundary(module_root, allowed_exports=[sub_modules, ...])
-# You can decide to grandfather the violations when you record them which means that you will
-# refer to that while and whitelist those violations when enforcing that interface
-# later, the filename is computed from the module being defined. By default these
-# are saved within the root module inside of a file named to_strangle. This way
-# viewers of the code can easily see there are certain lines and paths within
-# the module that should be worked out overtime.
-to_strangle.record_violations(grandfather=True)
-to_strangle.find_interface_violations()
-# raises an exception if any violations exist -- useful as a unittest
-# if the violations are within the grandfather file, it excludes them
-# if the violations are a subset of the grandfather file, the grandfather
-# file will automatically be updated and you will get a congratulatory
-# comment, if running from the command line
-to_strangle.enforce_interfaces()
-
-# You can also define module interfaces as a dict
-# Defining what is public will allow you to check that nothing that is NOT
-# public is exported from the interfaces you defined for your modules
-
-# Interfaces can be nested within interfaces i.e. you can define an interface
-# for a submodule contained within another interface
-interfaces = {
-  'rootA': ['submoduleA', 'submoduleB'], # these submodules are public
-  'rootB': ['rootA'] # the submodule rootA is public
-  'rootC': [] # there is no public interface
-  'rootD': ['rootD'] # this entire module is public
-}
+# in some config file at a location of your choosing, by default in cwd strangler/config.py
 
 # When defining public submodules you can enter them in a few different ways
 # Assumming that rootA has submodule{A,B} the following is valid:
 # ['submoduleA', 'rootA.submoduleA']
+
 # What would be invalid is if submoduleA was an ambiguous designator i.e.
 # submoduleA existed elsewhere, so for this reason a full path (from the root)
 # is required, but you need not include the root since this is implied
@@ -56,37 +46,86 @@ interfaces = {
 # exposing to the outside world? You could define this interface by defining
 # a black list of what is invalid to export and in some cases it could be
 # that this is the more concise description of the interface of your application.
-
-# What doesn't make sense is to define both public and what is private UNLESS
-# you want to describe some submodule of a submodule that is entirely public
-# but one part of which should be private. In this case, what is recommended
-# is to just have that submodule be a root entry in your interfaces.
-
-# Therefore, is never makes sense to BOTH describe what is public and
-# what is private. Just describe your public interface or your black listed
-# modules -- whichever is more concise and easy to understand
-
-# It is assumed by default you are defining a public interface, you can
-# define the interface inversely like so:
+#
+#
+# A -> B1 -> C
+#            D
+#   -> B2 -> E
+#
+# If I want B1 to be public but B1.C2 to be an exception and blacklisted from being
+# exported from A, but I want it to be locally importable to other submodules in
+# A then I can define A as public and define D as private. Alternatively, I could
+# define D as private. And the rest is inferred. Now you could imagine this makes
+# sense to do both for a larger more complciated example, where I want D to be
+# private and I want B2 to be private, but I want B1 to be public.
 interfaces_definition = {
   'rootA': {'private': [...], 'public': [...]}
+  'rootA.rootB': {'private': [...], 'public': [...]}
 }
 
-'''
-I still don't understand, why can't I define what is public and what is private
-for the same root module. To do this is unnecessarily complicated. We would
-need to search for all the patterns you have defined, then cross reference
-that with any intersecting patterns that touch black listed files.
+# in a unit test like: test_module_interface_boundaries.py
+from strangler import Strangler
+# TODO: import the config
 
-A -> B1 -> C
-           D
-  -> B2 -> E
+strangler = Strangler(interfaces_definition)
 
-If I want B1 to be public but B1.C2 to be an exception and blacklisted from being
-exported from A, but I want it to be locally importable to other submodules in
-A then I can define A as public and define D as private. Alternatively, I could
-define D as private. And the rest is inferred. Now you could imagine this makes
-sense to do both for a larger more complciated example, where I want D to be
-private and I want B2 to be private, but I want B1 to be public.
-'''
+# You can decide to grandfather the violations when you record them which means
+# you are whitelisting those violations. By default these are saved within
+# strangler dir into a file that is named after the root module.
+strangler.record_violations(grandfather=True)
+
+# Searches for violations of the interface definition
+strangler.find_interface_violations()
+
+# raises an exception if any violations exist -- useful as a unittest
+# if the violations are within the grandfather file, it excludes them
+# if the violations are a subset of the grandfather file, the grandfather
+# file will automatically be updated
+to_strangle.enforce_interfaces()
 ```
+
+## API Spec
+```python
+class Strangler:
+  STRANGLER_DIR = os.getcwd()
+
+  def __init__(self, interface_definitions: dict):
+    if self.valid_interfaces(interface_definitions):
+      self.interface_definitions = interface_definitions
+    else:
+      raise InvalidInterfaceDefinitions()
+
+  def grandfather_violations(self):
+    violations = self.find_interface_violations()
+    self._save(violations)
+
+  def find_interface_violations(self) -> list:
+    '''
+    Traverses the list of module roots in the interface definitions and
+    searches for import patterns that violate those definitions.
+    '''
+    pass
+
+  def enforce_interfaces(self):
+    if len(self.find_interface_violations()) > 0:
+      raise InterfaceViolation()
+```
+
+## Best Practices
+This doesn't make sense:
+{public: [], private: ['moduleA']}
+
+Because private does not invalidate anything in the public space.
+
+There is a general problem of what takes precedence, if public describes a supertree and private a super tree then you can blacklist that part of the tree, but what if the supertree is described as private and a subtree is described a public, is the reverse true? There needs to be a resolver that describes and matches up public and private based on specificity, or we can describe modules recursively.
+
+We can have a list of rules. How about we simplify -- if it's public, it's whitelisted and you can privatize specific parts of something that is whitelisted. But you cannot declare something as private in a vacumn, it is private relative to some supernode which defaults to the root tree.
+
+A module can have multiple interfaces defined. ('public pattern', exceptions)
+
+This means you can specify the tree in multiple ways.
+
+If there is no public pattern the whole tree is private.
+
+## Extensions
+- Atom/editor plugin that highlights strangled imports
