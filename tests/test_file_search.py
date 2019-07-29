@@ -1,4 +1,5 @@
 from unittest import TestCase
+import os
 
 from strangler.file_search import find_files, find_file_matches
 
@@ -17,7 +18,7 @@ class TestFindFileMatches(TestCase):
         f = find_files('.', '**/' + filename)[0]
         patterns = ['.*import .*List.*$', '.*import.*Path.*$']
         self.assertEqual(
-            find_file_matches(f, patterns),
+            find_file_matches(f, patterns, os.getcwd()),
             [
                 (filename, 1, 'from typing import List\n'),
                 (filename, 2, 'from pathlib import Path\n'),
