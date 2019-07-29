@@ -1,36 +1,14 @@
 import os
 
 
-class GrandfatherFileManager:
-    '''
-    Responsible for storing strangler files and retrieving them given
-    a module path.
-    '''
-    def __init__(self, root_dir_path, strangler_dir_name='strangler'):
-        self.strangler_dir = os.path.join(root_dir, strangler_dir_name)
-
-    def _convert_to_filename(self, module_path):
-        return  self.strangler_dir + '/' + filename + module_path.replace('.', '-')
-
-    def save_all_grandfather_files(self, roottoviolations):
-        for root_module, violations in nametoviolations.items():
-            save_grandfather_file(root_module, violations)
-
-    def save_grandfather_file(self, module_path, contents):
-        filepath = self._get_path(module_path)
-        with open(filename, 'w+') as grandfather_file:
-            for line in contents:
-                grandfather_file.write(line)
-
-    def read(self, module_path) -> list:
-        filepath = self._get_path(module_path)
-        return open(filepath, 'r').read()
-
-    def has_shrunk(self, module_path):
-        pass
-
-    def has_grown(self, module_path):
-        pass
+class Interface:
+    def __init__(self, definition):
+        # Describes the complete set of files within the module
+        self.file_pattern = definition['file_pattern']
+        # Module name
+        self.module = definition['module']
+        self.public = definition.get('public', [])
+        self.private = definition.get('private', [])
 
 
 class StranglerInterfaceViolation(Exception):
