@@ -28,11 +28,9 @@ class ViolationSearch:
         # 2. is not explicitly private
         return [
             violation for violation in violations
-            # It's a violation if it's not public AKA private
-            if not (
-                any([re.match(pattern, violation[0]) for pattern in definition.public]) and
-                not any([re.match(pattern, violation[0]) for pattern in definition.private])
-            )
+            # It's a violation if the import is not public AKA private OR it is private
+            if not (any([re.findall(pattern, violation[-1]) for pattern in definition.public])) or
+                any([re.findall(pattern, violation[-1]) for pattern in definition.private])
         ]
 
     @staticmethod
