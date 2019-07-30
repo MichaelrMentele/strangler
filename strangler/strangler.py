@@ -1,5 +1,6 @@
 import os
 
+from strangler.grandfather_file_manager import GrandfatherFileManager
 from strangler.violation_search import ViolationSearch
 
 
@@ -23,22 +24,22 @@ class Strangler:
     # outside of the module
     ROOT_DIRECTORY = os.getcwd() + '/strangler'
 
-    def __init__(self, interface_definitions: dict, file_manager=None):
+    def __init__(self, interface_definitions: dict, file_manager=None, violation_searcher=None):
         self.violation_searcher = violation_searcher or ViolationSearch
-        self.file_manager = file_manager or GrandfatherFileManager
+        self.file_manager = file_manager or GrandfatherFileManager(self.ROOT_DIRECTORY)
         # TODO: validate interface definitions are well formed
         self.interface_definitions = interface_definitions
 
     def grandfather_violations(self):
-        violations = self.interface_violations()
+        violations = self.report_violations()
         self.file_manager.save(violations)
 
-    def interface_violations(self):
+    def report_violations(self):
         violations = []
         for definition in self.interface_definitions:
-            violations.extend(self.violation_searcher.find_module_violations(definition))
+            violations.extend(self.violation_searcher.find_module_violations(self.ROOT_DIRECTORY, definition))
         return violations
 
-    def enforce_interfaces(self):
-        if len(self.interface_violations()) > 0:
-            raise InterfaceViolation()
+    def enforce_violations(self):
+        if len(self.report_violations()) > 0:
+            raise StranglerInterfaceViolation
