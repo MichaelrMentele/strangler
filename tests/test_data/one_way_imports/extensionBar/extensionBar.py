@@ -1,0 +1,1 @@
+from framework.somewhere import FakeThingThatDoesntExist

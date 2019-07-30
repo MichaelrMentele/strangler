@@ -6,7 +6,7 @@ from strangler.violation_search import ViolationSearch
 class Interface:
     def __init__(self, definition):
         # Describes the complete set of files within the module
-        self.file_pattern = definition['file_pattern']
+        self.module_file_path = definition['module_file_path']
         # Module name
         self.module = definition['module']
         self.public = definition.get('public', [])
@@ -21,7 +21,7 @@ class Strangler:
     # The root directory is analagous to defining the entire search space
     # for an interface definition to be checked against, that is what is
     # outside of the module
-    ROOT_DIRECTORY = os.getcwd()
+    ROOT_DIRECTORY = os.getcwd() + '/strangler'
 
     def __init__(self, interface_definitions: dict, file_manager=None):
         self.violation_searcher = violation_searcher or ViolationSearch

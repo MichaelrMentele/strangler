@@ -17,7 +17,7 @@ class ViolationSearch:
         '''
         # Find all exports for this module
         regexes = ViolationSearch._construct_regex_from_module(definition.module)
-        files = ViolationSearch._find_files(project_path, definition.file_pattern)
+        files = ViolationSearch._find_files_to_search(project_path, definition.module_file_path)
         violations = []
         for f in files:
             matches = ViolationSearch._find_file_matches(f, regexes, project_path)
@@ -41,20 +41,33 @@ class ViolationSearch:
         return patterns
 
     @staticmethod
-    def _find_files(project_path: str, unix_file_pattern: str) -> list:
+    def _find_files_to_search(project_path: str, root_file_path: str) -> list:
         '''
         Given a set of patterns, find all files from a search
-        path.
+        path. Then filter it down to files that don't match share
+        a prefix
         '''
-        return [
-            f for f in Path(project_path).glob(unix_file_pattern)
+        all_project_files = [
+            f for f in Path(project_path).glob('**/*')
             if f.is_file()
         ]
+
+        # Filter out files that are within the root_file_path
+        files_to_search = []
+        for f in all_project_files:
+            relative_file_path = f.absolute().relative_to(project_path).as_posix()
+            # the root file path should not be a prefix (i.e. the file is within a dir)
+            # AND the file path should not be within the root file path i.e the same file
+            in_search_space = not root_file_path in relative_file_path and not relative_file_path in root_file_path
+            valid_file = f.suffix == '.py'
+            if in_search_space and valid_file:
+                files_to_search.append(f)
+        return files_to_search
 
     @staticmethod
     def _find_file_matches(f, regexes: List[str], project_root) -> list:
         '''
-        Given a set of patterns and files find all the lines that
+        Given a set of patterns and a file find all the lines that
         match.
         '''
 
