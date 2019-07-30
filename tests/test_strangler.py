@@ -15,6 +15,7 @@ class TestStrangler(TestCase):
         })
         self.strangler = Strangler([interface])
         self.strangler.ROOT_DIRECTORY = os.getcwd() + '/tests/test_data/one_way_imports'
+        self.strangler.file_manager.delete()
 
     def test_report_violations(self):
         self.assertEqual(
@@ -28,3 +29,7 @@ class TestStrangler(TestCase):
 
     def test_grandfather_violations(self):
         self.strangler.grandfather_violations()
+
+    def test_enforce_violations_when_grandfathered(self):
+        self.strangler.grandfather_violations()
+        self.strangler.enforce_violations() # doesn't raise

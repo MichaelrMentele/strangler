@@ -58,9 +58,10 @@ between modules.
 # define D as private. And the rest is inferred. Now you could imagine this makes
 # sense to do both for a larger more complciated example, where I want D to be
 # private and I want B2 to be private, but I want B1 to be public.
-interfaces_definition = {
-  'rootA': {'private': [...], 'public': [...]}
-  'rootA.rootB': {'private': [...], 'public': [...]}
+interface = {
+  'file_pattern':
+  'module': {'private': [...], 'public': [...]}
+  'public': {'private': [...], 'public': [...]}
 }
 
 # in a unit test like: test_module_interface_boundaries.py

@@ -35,9 +35,15 @@ class Strangler:
         self.file_manager.save(violations)
 
     def report_violations(self):
+        whitelisted_violations = self.file_manager.read()
         violations = []
         for definition in self.interface_definitions:
-            violations.extend(self.violation_searcher.find_module_violations(self.ROOT_DIRECTORY, definition))
+            candidates = self.violation_searcher.find_module_violations(self.ROOT_DIRECTORY, definition)
+            actual_violations = [
+                candidate for candidate in candidates
+                if candidate not in whitelisted_violations
+            ]
+            violations.extend(actual_violations)
         return violations
 
     def enforce_violations(self):
